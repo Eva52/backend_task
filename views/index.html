@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Game Lobby</title>
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #lobbies { margin-top: 20px; }
+        .lobby { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Multiplayer Game Lobby</h1>
+    <input type="text" id="playerId" placeholder="Enter your Player ID">
+    <div>
+        <button id="createLobby">Create Lobby</button>
+    </div>
+    <div id="lobbies"></div>
+
+    <script>
+        var lbs=[]
+        const socket = io("http://localhost:3000");
+
+        socket.emit('getLobby');
+
+        document.getElementById('createLobby').addEventListener('click', function() {
+            const playerId = document.getElementById('playerId').value;
+            if (!playerId) {
+                alert('Please enter a Player ID');
+                return;
+            }
+            socket.emit('createLobby', playerId, { game: "Example Game" });
+        });
+
+        socket.on('lobbyListUpdated', function(lobbies) {
+            const lobbiesDiv = document.getElementById('lobbies');
+            lbs=lobbies
+            lobbiesDiv.innerHTML = ''; // Clear current list
+            lobbies.forEach(lobby => {
+                const lobbyDiv = document.createElement('div');
+                lobbyDiv.classList.add('lobby');
+                lobbyDiv.id=lobby.id
+                lobbyDiv.innerHTML = `
+                    <strong>Lobby ID:</strong> ${lobby.id} <br>
+                    <strong>Players:</strong> ${lobby.players.join(', ')} <br>
+                    <button onclick='joinLobby("${lobby.id}")'>Join Lobby</button>
+                    <button onclick='leaveLobby("${lobby.id}")'>Leave Lobby</button>
+                    <button onclick='startGame("${lobby.id}")'>Start Game</button>
+                `;
+                lobbiesDiv.appendChild(lobbyDiv);
+            });
+            console.log('Lobby updated');
+        });
+
+        socket.on('lobbyUpdated', function(lobbies) {
+            const lobbiesDiv = document.getElementById('lobbies');
+            lbs=lobbies
+            lobbiesDiv.innerHTML = ''; // Clear current list
+            lobbies.forEach(lobby => {
+                const lobbyDiv = document.createElement('div');
+                lobbyDiv.classList.add('lobby');
+                lobbyDiv.id=lobby.id
+                lobbyDiv.innerHTML = `
+                    <strong>Lobby ID:</strong> ${lobby.id} <br>
+                    <strong>Players:</strong> ${lobby.players.join(', ')} <br>
+                    <button onclick='joinLobby("${lobby.id}")'>Join Lobby</button>
+                    <button onclick='leaveLobby("${lobby.id}")'>Leave Lobby</button>
+                    <button onclick='startGame("${lobby.id}")'>Start Game</button>
+                `;
+                lobbiesDiv.appendChild(lobbyDiv);
+            });
+            alert(`Players change in lobby`);
+        });
+
+        function joinLobby(lobbyId) {
+            const playerId = document.getElementById('playerId').value;
+            socket.emit('joinLobby', lobbyId, playerId);
+        }
+
+        function leaveLobby(lobbyId) {
+            const playerId = document.getElementById('playerId').value;
+            socket.emit('leaveLobby', lobbyId, playerId);
+        }
+
+        function startGame(lobbyId) {
+            socket.emit('startGame', lobbyId);
+        }
+
+        // Handle lobby updates
+        socket.on('lobbyUpdated', function(lobby) {
+            console.log('Lobby updated:', lobby);
+            // For simplicity, we're just logging to the console. You could update the UI here.
+        });
+
+        // Handle game started notification
+        socket.on('gameStarted', function(lobby) {
+            const element = document.getElementById(lobby.id);
+            element.remove();
+            alert(`Game started in lobby ${lobby.id}`);
+            // You could redirect to a game page or update the UI accordingly.
+        });
+    </script>
+</body>
+</html>
